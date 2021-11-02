@@ -31,24 +31,18 @@ func Main(ctx context.Context) error {
 	}
 	sort.Strings(paths)
 
-	invalidCount := 0
-
-allCheck:
+	isValid := true
 	for _, path := range paths {
 		imports := allImports[path]
 		for _, imp := range imports {
 			if !rules.isValid(path, imp) {
 				fmt.Printf("import is not allowed: %s -> %s\n", path, imp)
-				invalidCount++
-				if invalidCount >= 5 {
-					fmt.Println("...")
-					break allCheck
-				}
+				isValid = false
 			}
 		}
 	}
 
-	if invalidCount > 0 {
+	if !isValid {
 		return errors.New("import rules validation error")
 	}
 
