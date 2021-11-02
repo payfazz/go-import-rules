@@ -3,7 +3,6 @@ package importrules
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/payfazz/go-errors/v2"
@@ -25,15 +24,8 @@ func Main(ctx context.Context) error {
 		return err
 	}
 
-	var paths []string
-	for path := range allImports {
-		paths = append(paths, path)
-	}
-	sort.Strings(paths)
-
 	isValid := true
-	for _, path := range paths {
-		imports := allImports[path]
+	for path, imports := range allImports {
 		for _, imp := range imports {
 			if !rules.isValid(path, imp) {
 				fmt.Printf("import is not allowed: %s -> %s\n", path, imp)
@@ -71,10 +63,11 @@ func getGoMod(ctx context.Context) (string, string, error) {
 }
 
 func getAllImports(ctx context.Context, mod string) (map[string][]string, error) {
-	stdout, err := command(ctx, "go", "list", "-f", `{{printf "%s\n" .ImportPath }}{{range .Imports}}{{printf "%s\n" .}}{{end}}{{printf "=====\n"}}`, mod+"/...")
+	stdout, err := command(ctx, "go", "list", "-f", `{{printf "%s\n" .ImportPath}}{{range .Imports}}{{printf "%s\n" .}}{{end}}{{printf "=====\n"}}`, mod+"/...")
 	if err != nil {
 		return nil, err
 	}
+
 	ret := make(map[string][]string)
 
 	list := strings.Split(stdout, "=====\n")

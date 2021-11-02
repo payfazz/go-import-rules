@@ -55,7 +55,7 @@ func normalizeImportPath(mod, path string) string {
 		return mod
 	}
 	if strings.HasPrefix(path, "./") {
-		return strings.TrimSuffix(mod+strings.TrimPrefix(path, "."), "/")
+		path = mod + strings.TrimPrefix(path, ".")
 	}
 	return strings.TrimSuffix(path, "/")
 }

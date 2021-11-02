@@ -2,7 +2,7 @@ package importrules
 
 import "testing"
 
-func TestNormalize(t *testing.T) {
+func TestNormalizeImportPath(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name     string
@@ -26,7 +26,7 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
-func TestPkgMatch(t *testing.T) {
+func TestImportPathMatch(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name     string
@@ -38,6 +38,8 @@ func TestPkgMatch(t *testing.T) {
 		{"2", "aa", "aa/...", true},
 		{"3", "aa/bb", "aa", false},
 		{"4", "aa/bb", "aa/...", true},
+		{"5", "bb", "aa/...", false},
+		{"5", "x/y/z", "...", true},
 	}
 	for _, c := range cases {
 		c := c
@@ -52,7 +54,7 @@ func TestPkgMatch(t *testing.T) {
 
 func TestRuleIsValid(t *testing.T) {
 	t.Parallel()
-	r := rule{"./aa", []string{"bb", "cc/..."}}
+	r := rule{"./aa", []string{"bb", "cc/...", "./dd/..."}}
 	r.normalize("mod")
 	cases := []struct {
 		name      string
@@ -65,6 +67,9 @@ func TestRuleIsValid(t *testing.T) {
 		{"3", "mod/aa", "cc/dd", true},
 		{"4", "mod/bb", "bb", false},
 		{"5", "mod/aa", "dd", false},
+		{"6", "mod/aa", "mod/dd", true},
+		{"7", "mod/aa", "mod/dd/ee", true},
+		{"8", "mod/bb", "mod", false},
 	}
 	for _, c := range cases {
 		c := c
