@@ -17,9 +17,13 @@ func main() {
 
 func onError(err error) int {
 	errstr := err.Error()
-	if os.Getenv("GO_IMPORT_RULES_DEBUG") == "1" {
+	if os.Getenv("GO_IMPORT_RULES_STACKTRACE") == "1" {
 		errstr = errors.Format(err)
 	}
 	fmt.Fprintln(os.Stderr, errstr)
+	var detailedError interface{ ErrorDetail() string }
+	if errors.As(err, &detailedError) {
+		fmt.Fprintln(os.Stderr, detailedError.ErrorDetail())
+	}
 	return 1
 }

@@ -3,18 +3,19 @@ package importrules
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/payfazz/go-errors/v2"
 )
 
 func Main(ctx context.Context) error {
-	root, mod, err := getGoMod(ctx)
+	dir, mod, err := getGoMod(ctx)
 	if err != nil {
 		return err
 	}
 
-	rules, err := loadRules(ctx, root, mod)
+	rules, err := loadRules(dir, mod)
 	if err != nil {
 		return err
 	}
@@ -25,22 +26,29 @@ func Main(ctx context.Context) error {
 	}
 
 	var paths []string
-	for k := range allImports {
-		paths = append(paths, k)
+	for path := range allImports {
+		paths = append(paths, path)
 	}
+	sort.Strings(paths)
 
-	valid := true
+	invalidCount := 0
+
+allCheck:
 	for _, path := range paths {
 		imports := allImports[path]
-		for _, i := range imports {
-			if !rules.isValid(path, i) {
-				fmt.Printf("import is not allowed: %s -> %s\n", path, i)
-				valid = false
+		for _, imp := range imports {
+			if !rules.isValid(path, imp) {
+				fmt.Printf("import is not allowed: %s -> %s\n", path, imp)
+				invalidCount++
+				if invalidCount >= 5 {
+					fmt.Println("...")
+					break allCheck
+				}
 			}
 		}
 	}
 
-	if !valid {
+	if invalidCount > 0 {
 		return errors.New("import rules validation error")
 	}
 
@@ -80,14 +88,14 @@ func getAllImports(ctx context.Context, mod string) (map[string][]string, error)
 		if p == "" {
 			continue
 		}
-		pkg := strings.Split(p, "\n")
-		if len(pkg) > 0 {
-			h := pkg[0]
-			for _, imp := range pkg[1:] {
+		imports := strings.Split(p, "\n")
+		if len(imports) > 0 {
+			path := imports[0]
+			for _, imp := range imports[1:] {
 				if imp == "" {
 					continue
 				}
-				ret[h] = append(ret[h], imp)
+				ret[path] = append(ret[path], imp)
 			}
 		}
 	}

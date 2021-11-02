@@ -1,7 +1,6 @@
 package importrules
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,19 +12,19 @@ import (
 type rules []rule
 
 type rule struct {
-	ImportPath string   `yaml:"path"`
-	Allowed    []string `yaml:"allowed"`
+	Path  string   `yaml:"path"`
+	Allow []string `yaml:"allow"`
 }
 
-func (rules rules) normalize(mod string) {
-	for i := range rules {
-		rules[i].normalize(mod)
+func (rs rules) normalize(mod string) {
+	for i := range rs {
+		rs[i].normalize(mod)
 	}
 }
 
-func (rules rules) isValid(path, importing string) bool {
-	for _, r := range rules {
-		if r.isValid(path, importing) {
+func (rs rules) isValid(path, importing string) bool {
+	for i := range rs {
+		if rs[i].isValid(path, importing) {
 			return true
 		}
 	}
@@ -33,17 +32,17 @@ func (rules rules) isValid(path, importing string) bool {
 }
 
 func (r *rule) normalize(mod string) {
-	r.ImportPath = normalizeImportPath(mod, r.ImportPath)
-	for i := range r.Allowed {
-		r.Allowed[i] = normalizeImportPath(mod, r.Allowed[i])
+	r.Path = normalizeImportPath(mod, r.Path)
+	for i := range r.Allow {
+		r.Allow[i] = normalizeImportPath(mod, r.Allow[i])
 	}
 }
 
 func (r *rule) isValid(path, importing string) bool {
-	if !importPathMatch(path, r.ImportPath) {
+	if !importPathMatch(path, r.Path) {
 		return false
 	}
-	for _, p := range r.Allowed {
+	for _, p := range r.Allow {
 		if importPathMatch(importing, p) {
 			return true
 		}
@@ -52,9 +51,11 @@ func (r *rule) isValid(path, importing string) bool {
 }
 
 func normalizeImportPath(mod, path string) string {
-	if strings.HasPrefix(path, "+/") {
-		mod = strings.TrimSuffix(mod, "/")
-		return strings.TrimSuffix(mod+strings.TrimPrefix(path, "+"), "/")
+	if path == "." {
+		return mod
+	}
+	if strings.HasPrefix(path, "./") {
+		return strings.TrimSuffix(mod+strings.TrimPrefix(path, "."), "/")
 	}
 	return strings.TrimSuffix(path, "/")
 }
@@ -69,7 +70,7 @@ func importPathMatch(path, pattern string) bool {
 	return strings.HasPrefix(path, strings.TrimSuffix(pattern, "/..."))
 }
 
-func readRules(ctx context.Context, root string) (data []byte, err error) {
+func readRules(root string) (data []byte, err error) {
 	data, err = os.ReadFile(filepath.Join(root, "import-rules.yaml"))
 	if err == nil {
 		return
@@ -81,8 +82,8 @@ func readRules(ctx context.Context, root string) (data []byte, err error) {
 	return nil, errors.New(`cannot read "import-rules.yaml" or "import-rules.yml"`)
 }
 
-func loadRules(ctx context.Context, root, mod string) (rules, error) {
-	data, err := readRules(ctx, root)
+func loadRules(root, mod string) (rules, error) {
+	data, err := readRules(root)
 	if err != nil {
 		return nil, err
 	}

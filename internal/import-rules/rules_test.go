@@ -9,9 +9,10 @@ func TestNormalize(t *testing.T) {
 		pkg      string
 		expected string
 	}{
-		{"1", "+/", "mod"},
+		{"1a", "./", "mod"},
+		{"1b", ".", "mod"},
 		{"2", "aa/", "aa"},
-		{"3", "+/...", "mod/..."},
+		{"3", "./...", "mod/..."},
 		{"4", "aa/...", "aa/..."},
 	}
 	for _, c := range cases {
@@ -19,9 +20,6 @@ func TestNormalize(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			if normalizeImportPath("mod", c.pkg) != c.expected {
-				t.FailNow()
-			}
-			if normalizeImportPath("mod/", c.pkg) != c.expected {
 				t.FailNow()
 			}
 		})
@@ -53,21 +51,28 @@ func TestPkgMatch(t *testing.T) {
 }
 
 func TestRuleIsValid(t *testing.T) {
-	r := rule{"+/aa", []string{"bb", "cc/..."}}
+	t.Parallel()
+	r := rule{"./aa", []string{"bb", "cc/..."}}
 	r.normalize("mod")
-	if !r.isValid("mod/aa", "bb") {
-		t.FailNow()
+	cases := []struct {
+		name      string
+		path      string
+		importing string
+		expected  bool
+	}{
+		{"1", "mod/aa", "bb", true},
+		{"2", "mod/aa", "cc", true},
+		{"3", "mod/aa", "cc/dd", true},
+		{"4", "mod/bb", "bb", false},
+		{"5", "mod/aa", "dd", false},
 	}
-	if !r.isValid("mod/aa", "cc") {
-		t.FailNow()
-	}
-	if !r.isValid("mod/aa", "cc/dd") {
-		t.FailNow()
-	}
-	if r.isValid("mod/bb", "bb") {
-		t.FailNow()
-	}
-	if !r.isValid("mod/aa", "dd") {
-		t.FailNow()
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			if r.isValid(c.path, c.importing) != c.expected {
+				t.FailNow()
+			}
+		})
 	}
 }
