@@ -85,7 +85,7 @@ func readRules(root string) (data []byte, err error) {
 func loadRules(root, mod string) (rules, error) {
 	data, err := readRules(root)
 	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 	var r rules
 	if err := yaml.Unmarshal(data, &r); err != nil {
