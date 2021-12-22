@@ -3,10 +3,13 @@ package importrules
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/payfazz/go-errors/v2"
 )
+
+// TODO(win): do parsing without calling go binary
 
 func Main(ctx context.Context) error {
 	dir, mod, err := getGoMod(ctx)
@@ -25,67 +28,71 @@ func Main(ctx context.Context) error {
 	}
 
 	isValid := true
-	for path, imports := range allImports {
+	for pkg, imports := range allImports {
 		for _, imp := range imports {
-			if !rules.isValid(path, imp) {
-				fmt.Printf("import is not allowed: %s -> %s\n", path, imp)
+			if !rules.isValid(pkg, imp) {
+				fmt.Printf("import is not allowed: %s -> %s\n", pkg, imp)
 				isValid = false
 			}
 		}
 	}
 
 	if !isValid {
-		return errors.New("import rules validation error")
+		os.Exit(2)
 	}
 
 	return nil
 }
 
-func getGoMod(ctx context.Context) (string, string, error) {
+func getGoMod(ctx context.Context) (dir, mod string, err error) {
 	stdout, err := command(ctx, "go", "list", "-m", "-f", `{{printf "%s\n%s" .Dir .Path}}`)
 	if err != nil {
 		return "", "", err
 	}
 
-	var mod, path string
 	if s := strings.Split(stdout, "\n"); len(s) >= 2 {
-		mod = s[0]
-		path = s[1]
+		dir = s[0]
+		mod = s[1]
 	}
 
-	if mod == "" {
+	if dir == "" {
 		return "", "", errors.New("no go.mod found")
 	}
 
+	dir = strings.TrimSuffix(dir, string(os.PathSeparator))
 	mod = strings.TrimSuffix(mod, "/")
 
-	return mod, path, nil
+	return dir, mod, nil
 }
 
 func getAllImports(ctx context.Context, mod string) (map[string][]string, error) {
-	stdout, err := command(ctx, "go", "list", "-f", `{{printf "%s\n" .ImportPath}}{{range .Imports}}{{printf "%s\n" .}}{{end}}{{printf "=====\n"}}`, mod+"/...")
+	stdout, err := command(ctx, "go", "list", "-f", `{{printf ">%s\n" .ImportPath}}{{range .Imports}}{{printf "+%s\n" .}}{{end}}`, mod+"/...")
 	if err != nil {
 		return nil, err
 	}
 
-	ret := make(map[string][]string)
+	imports := make(map[string][]string)
 
-	list := strings.Split(stdout, "=====\n")
-	for _, p := range list {
-		if p == "" {
+	lines := strings.Split(stdout, "\n")
+	var curPkg string
+	for _, line := range lines {
+		if line == "" {
 			continue
 		}
-		imports := strings.Split(p, "\n")
-		if len(imports) > 0 {
-			path := imports[0]
-			for _, imp := range imports[1:] {
-				if imp == "" {
-					continue
-				}
-				ret[path] = append(ret[path], imp)
-			}
+		mark, pkg := line[0], line[1:]
+		if mark == '>' {
+			curPkg = pkg
+			continue
 		}
+		if mark == '+' {
+			if curPkg == "" || pkg == "" {
+				continue
+			}
+			imports[curPkg] = append(imports[curPkg], pkg)
+			continue
+		}
+		panic("invalid mark")
 	}
 
-	return ret, nil
+	return imports, nil
 }

@@ -4,22 +4,21 @@ import "testing"
 
 func TestNormalizeImportPath(t *testing.T) {
 	t.Parallel()
-	cases := []struct {
-		name     string
+	tests := map[string]struct {
 		pkg      string
 		expected string
 	}{
-		{"1a", "./", "mod"},
-		{"1b", ".", "mod"},
-		{"2", "aa/", "aa"},
-		{"3", "./...", "mod/..."},
-		{"4", "aa/...", "aa/..."},
+		"1a": {"./", "mod"},
+		"1b": {".", "mod"},
+		"2":  {"aa/", "aa"},
+		"3":  {"./...", "mod/..."},
+		"4":  {"aa/...", "aa/..."},
 	}
-	for _, c := range cases {
-		c := c
-		t.Run(c.name, func(t *testing.T) {
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if normalizeImportPath("mod", c.pkg) != c.expected {
+			if normalizeImportPath("mod", test.pkg) != test.expected {
 				t.FailNow()
 			}
 		})
@@ -28,54 +27,54 @@ func TestNormalizeImportPath(t *testing.T) {
 
 func TestImportPathMatch(t *testing.T) {
 	t.Parallel()
-	cases := []struct {
-		name     string
+	tests := map[string]struct {
 		pkg      string
 		pat      string
 		expected bool
 	}{
-		{"1", "aa", "aa", true},
-		{"2", "aa", "aa/...", true},
-		{"3", "aa/bb", "aa", false},
-		{"4", "aa/bb", "aa/...", true},
-		{"5", "bb", "aa/...", false},
-		{"5", "x/y/z", "...", true},
+		"1": {"aa", "aa", true},
+		"2": {"aa", "aa/...", true},
+		"3": {"aa/bb", "aa", false},
+		"4": {"aa/bb", "aa/...", true},
+		"5": {"bb", "aa/...", false},
+		"6": {"x/y/z", "...", true},
 	}
-	for _, c := range cases {
-		c := c
-		t.Run(c.name, func(t *testing.T) {
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if importPathMatch(c.pkg, c.pat) != c.expected {
+			if importPathMatch(test.pkg, test.pat) != test.expected {
 				t.FailNow()
 			}
 		})
 	}
 }
 
-func TestRuleIsValid(t *testing.T) {
+func TestRuleDecide(t *testing.T) {
 	t.Parallel()
-	r := rule{"./aa", []string{"bb", "cc/...", "./dd/..."}}
+	r := rule{"./aa", []string{"bb", "cc/...", "./dd/...", "xx"}, []string{"xx", "yy"}}
 	r.normalize("mod")
-	cases := []struct {
-		name      string
+	tests := map[string]struct {
 		path      string
 		importing string
-		expected  bool
+		expected  decission
 	}{
-		{"1", "mod/aa", "bb", true},
-		{"2", "mod/aa", "cc", true},
-		{"3", "mod/aa", "cc/dd", true},
-		{"4", "mod/bb", "bb", false},
-		{"5", "mod/aa", "dd", false},
-		{"6", "mod/aa", "mod/dd", true},
-		{"7", "mod/aa", "mod/dd/ee", true},
-		{"8", "mod/bb", "mod", false},
+		"1":  {"mod/aa", "bb", allowed},
+		"2":  {"mod/aa", "cc", allowed},
+		"3":  {"mod/aa", "cc/dd", allowed},
+		"4":  {"mod/bb", "bb", undecided},
+		"5":  {"mod/aa", "dd", undecided},
+		"6":  {"mod/aa", "mod/dd", allowed},
+		"7":  {"mod/aa", "mod/dd/ee", allowed},
+		"8":  {"mod/bb", "mod", undecided},
+		"9":  {"mod/aa", "xx", denied},
+		"10": {"mod/aa", "yy", denied},
 	}
-	for _, c := range cases {
-		c := c
-		t.Run(c.name, func(t *testing.T) {
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if r.isValid(c.path, c.importing) != c.expected {
+			if r.decide(test.path, test.importing) != test.expected {
 				t.FailNow()
 			}
 		})

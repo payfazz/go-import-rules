@@ -1,7 +1,7 @@
-github.com/payfazz/go-errors/v2 v2.0.15 h1:fbBp20vOyqharM7xJ7PIB9Ek4wsO+Colx2IgbbwPVaU=
-github.com/payfazz/go-errors/v2 v2.0.15/go.mod h1:KBBzNZFQ5is9ms1M64V5NUAG6AuD4ASAh/pcOdm/Iw8=
-github.com/payfazz/go-mainrun v1.0.2 h1:hhd4hJnYw0bqyQGyob0Y8WU34cONUKXfaQ+rEnNJoEA=
-github.com/payfazz/go-mainrun v1.0.2/go.mod h1:NVr7Y6TYYh9rf8sjJIyHEmpSf7W8D0VciGbf9pVD43k=
+github.com/payfazz/go-errors/v2 v2.1.0 h1:OMZodi6OWF58X1VN1rFtwCfjwFd4RLrTdvuNIu5MXJI=
+github.com/payfazz/go-errors/v2 v2.1.0/go.mod h1:KBBzNZFQ5is9ms1M64V5NUAG6AuD4ASAh/pcOdm/Iw8=
+github.com/payfazz/go-mainrun v1.0.4 h1:W74qBCpe7qUWAjOo6WzneJzDDI+acDp0U4xhtMpgN/U=
+github.com/payfazz/go-mainrun v1.0.4/go.mod h1:k+HU0dMvmbATQNpDjfHkKLpOQhZEBnRSpVuGNSRsaKQ=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v22aHH28wwpauUhK9Oo=

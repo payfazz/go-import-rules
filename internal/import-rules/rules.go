@@ -14,6 +14,7 @@ type rules []rule
 type rule struct {
 	Path  string   `yaml:"path"`
 	Allow []string `yaml:"allow"`
+	Deny  []string `yaml:"deny"`
 }
 
 func (rs rules) normalize(mod string) {
@@ -22,13 +23,20 @@ func (rs rules) normalize(mod string) {
 	}
 }
 
-func (rs rules) isValid(path, importing string) bool {
+func (rs rules) isValid(pkg, imp string) bool {
+	def := false
 	for i := range rs {
-		if rs[i].isValid(path, importing) {
-			return true
+		switch rs[i].decide(pkg, imp) {
+		case undecided:
+		case allowed:
+			def = true
+		case denied:
+			return false
+		default:
+			panic("invalid switch")
 		}
 	}
-	return false
+	return def
 }
 
 func (r *rule) normalize(mod string) {
@@ -38,16 +46,29 @@ func (r *rule) normalize(mod string) {
 	}
 }
 
-func (r *rule) isValid(path, importing string) bool {
-	if !importPathMatch(path, r.Path) {
-		return false
+type decission int
+
+const (
+	undecided decission = iota
+	allowed
+	denied
+)
+
+func (r *rule) decide(pkg, imp string) decission {
+	if !importPathMatch(pkg, r.Path) {
+		return undecided
 	}
-	for _, p := range r.Allow {
-		if importPathMatch(importing, p) {
-			return true
+	for _, p := range r.Deny {
+		if importPathMatch(imp, p) {
+			return denied
 		}
 	}
-	return false
+	for _, p := range r.Allow {
+		if importPathMatch(imp, p) {
+			return allowed
+		}
+	}
+	return undecided
 }
 
 func normalizeImportPath(mod, path string) string {
@@ -55,19 +76,19 @@ func normalizeImportPath(mod, path string) string {
 		return mod
 	}
 	if strings.HasPrefix(path, "./") {
-		path = mod + strings.TrimPrefix(path, ".")
+		path = mod + path[1:]
 	}
 	return strings.TrimSuffix(path, "/")
 }
 
-func importPathMatch(path, pattern string) bool {
+func importPathMatch(pkg, pattern string) bool {
 	if pattern == "..." {
 		return true
 	}
 	if !strings.HasSuffix(pattern, "/...") {
-		return path == pattern
+		return pkg == pattern
 	}
-	return strings.HasPrefix(path, strings.TrimSuffix(pattern, "/..."))
+	return strings.HasPrefix(pkg, pattern[:len(pattern)-4])
 }
 
 func readRules(root string) (data []byte, err error) {
@@ -82,8 +103,8 @@ func readRules(root string) (data []byte, err error) {
 	return nil, errors.New(`cannot read "import-rules.yaml" or "import-rules.yml"`)
 }
 
-func loadRules(root, mod string) (rules, error) {
-	data, err := readRules(root)
+func loadRules(dir, mod string) (rules, error) {
+	data, err := readRules(dir)
 	if err != nil {
 		return nil, nil
 	}
