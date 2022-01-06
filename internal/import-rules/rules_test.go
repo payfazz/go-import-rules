@@ -80,3 +80,30 @@ func TestRuleDecide(t *testing.T) {
 		})
 	}
 }
+
+func TestRules(t *testing.T) {
+	t.Parallel()
+	rs := rules{
+		{"...", []string{"..."}, []string{}},
+		{"./aa/...", []string{"./aa/..."}, []string{}},
+		{"./aa/bb/...", []string{}, []string{"./aa/cc/..."}},
+	}
+	rs.normalize("mod")
+	tests := map[string]struct {
+		path      string
+		importing string
+		allowed   bool
+	}{
+		"1": {"mod/aa/xyz", "mod/aa/ppp", true},
+		"2": {"mod/aa/bb/xyz", "mod/aa/cc/ppp", false},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if rs.isAllowed(test.path, test.importing) != test.allowed {
+				t.FailNow()
+			}
+		})
+	}
+}

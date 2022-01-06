@@ -30,7 +30,7 @@ func Main(ctx context.Context) error {
 	isValid := true
 	for pkg, imports := range allImports {
 		for _, imp := range imports {
-			if !rules.isValid(pkg, imp) {
+			if !rules.isAllowed(pkg, imp) {
 				fmt.Printf("import is not allowed: %s -> %s\n", pkg, imp)
 				isValid = false
 			}

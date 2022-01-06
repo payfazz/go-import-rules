@@ -3,6 +3,7 @@ package importrules
 import (
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/payfazz/go-errors/v2"
@@ -21,9 +22,12 @@ func (rs rules) normalize(mod string) {
 	for i := range rs {
 		rs[i].normalize(mod)
 	}
+	sort.SliceStable(rs, func(i, j int) bool {
+		return strings.Count(rs[i].Path, "/") > strings.Count(rs[j].Path, "/")
+	})
 }
 
-func (rs rules) isValid(pkg, imp string) bool {
+func (rs rules) isAllowed(pkg, imp string) bool {
 	def := false
 	for i := range rs {
 		switch rs[i].decide(pkg, imp) {
@@ -43,6 +47,9 @@ func (r *rule) normalize(mod string) {
 	r.Path = normalizeImportPath(mod, r.Path)
 	for i := range r.Allow {
 		r.Allow[i] = normalizeImportPath(mod, r.Allow[i])
+	}
+	for i := range r.Deny {
+		r.Deny[i] = normalizeImportPath(mod, r.Deny[i])
 	}
 }
 

@@ -16,9 +16,9 @@ func main() {
 }
 
 func onError(err error) int {
-	errstr := err.Error()
+	errstr := "Error: " + err.Error()
 	if os.Getenv("GO_IMPORT_RULES_STACKTRACE") == "1" {
-		errstr = errors.Format(err)
+		errstr = errors.FormatWithFilterPkgs(err, "main", "github.com/payfazz/go-import-rules")
 	}
 	fmt.Fprintln(os.Stderr, errstr)
 	var detailedError interface{ ErrorDetail() string }
