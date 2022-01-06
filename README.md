@@ -14,7 +14,7 @@ go install github.com/payfazz/go-import-rules/...@latest
 
 Create `import-rules.yaml`, this file contains array of rules.
 
-Each rule have `path` (`string`) and `allow` (`[]string`) property.
+Each rule have `path` (`string`), `allow` (`[]string`) and `deny` (`[]string`) property.
 
 Import path in rules have following convention:
 - path start with `"./"` (or `"."`) mean path that spesified in `go.mod`.
