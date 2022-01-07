@@ -1,4 +1,4 @@
-package importrules
+package rules
 
 import "testing"
 
@@ -52,7 +52,7 @@ func TestImportPathMatch(t *testing.T) {
 
 func TestRuleDecide(t *testing.T) {
 	t.Parallel()
-	r := rule{"./aa", []string{"bb", "cc/...", "./dd/...", "xx"}, []string{"xx", "yy"}}
+	r := rulesItem{"./aa", []string{"bb", "cc/...", "./dd/...", "xx"}, []string{"xx", "yy"}}
 	r.normalize("mod")
 	tests := map[string]struct {
 		path      string
@@ -81,10 +81,9 @@ func TestRuleDecide(t *testing.T) {
 	}
 }
 
-func TestRules(t *testing.T) {
+func TestRulesDenySubPath(t *testing.T) {
 	t.Parallel()
-	rs := rules{
-		{"...", []string{"..."}, []string{}},
+	rs := Rules{
 		{"./aa/...", []string{"./aa/..."}, []string{}},
 		{"./aa/bb/...", []string{}, []string{"./aa/cc/..."}},
 	}
@@ -96,14 +95,57 @@ func TestRules(t *testing.T) {
 	}{
 		"1": {"mod/aa/xyz", "mod/aa/ppp", true},
 		"2": {"mod/aa/bb/xyz", "mod/aa/cc/ppp", false},
+		"3": {"some", "other", false},
 	}
 	for name, test := range tests {
 		name, test := name, test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			if rs.isAllowed(test.path, test.importing) != test.allowed {
+			if rs.IsAllowed(test.path, test.importing) != test.allowed {
 				t.FailNow()
 			}
 		})
+	}
+}
+
+func TestRulesAllowAllExceptSome(t *testing.T) {
+	t.Parallel()
+	rs := Rules{
+		{"...", []string{"..."}, []string{}},
+		{"./aa/...", []string{"fmt", "strings"}, []string{}},
+		{"./aa/...", []string{}, []string{"..."}},
+	}
+	rs.normalize("mod")
+	tests := map[string]struct {
+		path      string
+		importing string
+		allowed   bool
+	}{
+		"1": {"mod/some", "something", true},
+		"2": {"mod/aa/some", "something", false},
+		"3": {"mod/aa/some", "fmt", true},
+	}
+	for name, test := range tests {
+		name, test := name, test
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			if rs.IsAllowed(test.path, test.importing) != test.allowed {
+				t.FailNow()
+			}
+		})
+	}
+}
+
+func TestParseYAML(t *testing.T) {
+	t.Parallel()
+	data := `` +
+		`- path: ./...` + "\n" +
+		`  allow:` + "\n" +
+		`    - ...` + "\n" +
+		``
+
+	_, err := ParseYAML("mod", []byte(data))
+	if err != nil {
+		t.FailNow()
 	}
 }

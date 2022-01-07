@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/payfazz/go-errors/v2"
+	"github.com/payfazz/go-import-rules/internal/rules"
 )
 
 // TODO(win): do parsing without calling go binary
@@ -30,7 +32,7 @@ func Main(ctx context.Context) error {
 	isValid := true
 	for pkg, imports := range allImports {
 		for _, imp := range imports {
-			if !rules.isAllowed(pkg, imp) {
+			if !rules.IsAllowed(pkg, imp) {
 				fmt.Printf("import is not allowed: %s -> %s\n", pkg, imp)
 				isValid = false
 			}
@@ -95,4 +97,24 @@ func getAllImports(ctx context.Context, mod string) (map[string][]string, error)
 	}
 
 	return imports, nil
+}
+
+func readRules(root string) (data []byte, err error) {
+	data, err = os.ReadFile(filepath.Join(root, "import-rules.yaml"))
+	if err == nil {
+		return
+	}
+	data, err = os.ReadFile(filepath.Join(root, "import-rules.yml"))
+	if err == nil {
+		return
+	}
+	return nil, errors.New(`cannot read "import-rules.yaml" or "import-rules.yml"`)
+}
+
+func loadRules(dir, mod string) (rules.Rules, error) {
+	data, err := readRules(dir)
+	if err != nil {
+		return nil, nil
+	}
+	return rules.ParseYAML(mod, data)
 }
